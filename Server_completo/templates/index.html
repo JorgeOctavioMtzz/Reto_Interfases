@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Stream and Odometry Data</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .video-container {
+            width: 640px; /* Ancho del video */
+            height: 480px; /* Alto del video */
+            position: relative;
+            margin-top: 20px;
+        }
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .odometry-data {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .button-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Video Stream and Odometry Data</h1>
+    <div class="video-container">
+        <img id="video" src="{{ url_for('video_feed') }}" alt="Video Stream">
+    </div>
+    <div class="odometry-data">
+        <p>Odometry Data:</p>
+        <p>X: <span id="odom_x"></span></p>
+        <p>Y: <span id="odom_y"></span></p>
+    </div>
+    <div class="button-container">
+        <button id="static-mode-btn" onclick="setStaticMode()">Static Mode</button>
+        <button id="dynamic-mode-btn" onclick="setDynamicMode()">Dynamic Mode</button>
+    </div>
+    <script>
+        let dynamicUpdateInterval;
+        let videoUpdateInterval;
+
+        function updateOdomData() {
+            fetch('/odom_data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('odom_x').textContent = data.x.toFixed(2);
+                    document.getElementById('odom_y').textContent = data.y.toFixed(2);
+                });
+        }
+
+        function updateVideo() {
+            document.getElementById('video').src = "{{ url_for('video_feed') }}";
+        }
+
+        function startVideoUpdate() {
+            if (!videoUpdateInterval) {
+                videoUpdateInterval = setInterval(updateVideo, 100); // Update video every 1000ms (1 second)
+                updateVideo(); // Update video immediately after setting interval
+            }
+        }
+
+        function stopVideoUpdate() {
+            clearInterval(videoUpdateInterval);
+            videoUpdateInterval = null;
+        }
+
+        function setStaticMode() {
+            clearInterval(dynamicUpdateInterval);
+            clearInterval(videoUpdateInterval);
+            updateOdomData(); // Update odometry data once immediately
+            // No es necesario iniciar stopVideoUpdate() aquí, ya que se detiene el video de inmediato
+        }
+
+        function setDynamicMode() {
+            updateOdomData(); // Update odometry data once immediately
+            dynamicUpdateInterval = setInterval(updateOdomData, 100); // Update odometry data every 100ms
+            startVideoUpdate(); // Start video update
+        }
+
+        // Initially set dynamic mode
+        setDynamicMode();
+    </script>
+</body>
+</html>
